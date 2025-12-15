@@ -28,7 +28,7 @@ type MessageRecord struct {
 	Title      string
 	Message    string
 	App        string
-	AID        string
+	AID        int64
 	Icon       string
 	ReceivedAt time.Time
 	SentAt     *time.Time
@@ -96,7 +96,7 @@ func (s *Store) migrate() error {
             title TEXT,
             message TEXT NOT NULL,
             app TEXT,
-            aid TEXT,
+            aid INTEGER,
             icon TEXT,
             received_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             sent_at DATETIME,

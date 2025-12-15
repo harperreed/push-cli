@@ -15,18 +15,22 @@ import (
 // ReceivedMessage describes a message returned by the Open Client API.
 type ReceivedMessage struct {
 	PushoverID int64  `json:"id"`
-	UMID       string `json:"umid"`
+	UMID       int64  `json:"umid"`
+	UMIDStr    string `json:"umid_str"`
 	Title      string `json:"title"`
 	Message    string `json:"message"`
 	App        string `json:"app"`
-	AID        string `json:"aid"`
+	AID        int64  `json:"aid"`
+	AIDStr     string `json:"aid_str"`
 	Icon       string `json:"icon"`
+	Date       int64  `json:"date"`
 	Priority   int    `json:"priority"`
+	Sound      string `json:"sound"`
 	URL        string `json:"url"`
 	URLTitle   string `json:"url_title"`
-	Acked      bool   `json:"acked"`
-	HTML       bool   `json:"html"`
-	Timestamp  int64  `json:"timestamp"`
+	Acked      int    `json:"acked"`
+	HTML       int    `json:"html"`
+	Receipt    string `json:"receipt"`
 }
 
 // FetchResult bundles a set of received messages and cursor metadata.

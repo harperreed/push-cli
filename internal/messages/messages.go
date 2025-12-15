@@ -4,6 +4,7 @@ package messages
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/harper/push/internal/db"
@@ -15,9 +16,13 @@ func RecordsFromReceived(msgs []pushover.ReceivedMessage) []db.MessageRecord {
 	records := make([]db.MessageRecord, 0, len(msgs))
 	for _, msg := range msgs {
 		received := time.Now()
+		umid := msg.UMIDStr
+		if umid == "" && msg.UMID != 0 {
+			umid = strconv.FormatInt(msg.UMID, 10)
+		}
 		rec := db.MessageRecord{
 			PushoverID: msg.PushoverID,
-			UMID:       msg.UMID,
+			UMID:       umid,
 			Title:      msg.Title,
 			Message:    msg.Message,
 			App:        msg.App,
@@ -26,11 +31,11 @@ func RecordsFromReceived(msgs []pushover.ReceivedMessage) []db.MessageRecord {
 			ReceivedAt: received,
 			Priority:   msg.Priority,
 			URL:        msg.URL,
-			Acked:      msg.Acked,
-			HTML:       msg.HTML,
+			Acked:      msg.Acked != 0,
+			HTML:       msg.HTML != 0,
 		}
-		if msg.Timestamp > 0 {
-			sent := time.Unix(msg.Timestamp, 0)
+		if msg.Date > 0 {
+			sent := time.Unix(msg.Date, 0)
 			rec.SentAt = &sent
 		}
 		records = append(records, rec)

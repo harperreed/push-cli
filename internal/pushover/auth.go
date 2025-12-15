@@ -43,7 +43,7 @@ func (c *Client) Login(ctx context.Context, email, password, twoFactorCode strin
 	values.Set("email", email)
 	values.Set("password", password)
 	if twoFactorCode != "" {
-		values.Set("code", twoFactorCode)
+		values.Set("twofa", twoFactorCode)
 	}
 	encoded := values.Encode()
 
