@@ -1,0 +1,67 @@
+# ABOUTME: golangci-lint configuration for comprehensive Go code quality checks
+# ABOUTME: Enables linters for bugs, performance, security, style, and maintainability
+
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - bodyclose
+    - nilerr
+    - nilnil
+    - errchkjson
+    - contextcheck
+    - prealloc
+    - makezero
+    - misspell
+    - whitespace
+    - godot
+    - gocyclo
+    - gocognit
+    - nestif
+    - funlen
+    - gosec
+    - copyloopvar
+    - errorlint
+    - gocritic
+    - unconvert
+    - unparam
+    - wastedassign
+
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: false
+
+    gocyclo:
+      min-complexity: 20
+
+    gocognit:
+      min-complexity: 30
+
+    funlen:
+      lines: 120
+      statements: 80
+
+    gosec:
+      excludes:
+        - G404
+        - G304
+        - G301
+        - G201
+
+    nestif:
+      min-complexity: 5
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
