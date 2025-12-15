@@ -10,7 +10,7 @@ before:
 builds:
   - id: push
     binary: push
-    main: ./cmd/push
+    main: .
     env:
       - CGO_ENABLED=1
     goos:
@@ -78,8 +78,8 @@ brews:
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     directory: Formula
-    homepage: https://github.com/harperreed/push
-    description: "A super simple git-aware todo manager"
+    homepage: https://github.com/harperreed/push-cli
+    description: "CLI and MCP server for Pushover notifications"
     license: MIT
     commit_author:
       name: goreleaserbot
