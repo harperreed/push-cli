@@ -54,9 +54,6 @@ func runSend(cmd *cobra.Command, args []string) error {
 	urlTitle, _ := cmd.Flags().GetString("url-title")
 	sound, _ := cmd.Flags().GetString("sound")
 	device, _ := cmd.Flags().GetString("device")
-	if device == "" {
-		device = cfg.DefaultDevice
-	}
 
 	client := newClientFromConfig(cfg)
 	ctx := cmd.Context()

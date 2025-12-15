@@ -53,9 +53,14 @@ func resolveConfigPath() (string, error) {
 		return opts.configPath, nil
 	}
 
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return "", fmt.Errorf("locating config directory: %w", err)
+	// Use XDG_CONFIG_HOME if set, otherwise ~/.config (even on macOS)
+	configDir := os.Getenv("XDG_CONFIG_HOME")
+	if configDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("locating home directory: %w", err)
+		}
+		configDir = filepath.Join(homeDir, ".config")
 	}
 	return filepath.Join(configDir, "push", "config.toml"), nil
 }
@@ -65,9 +70,14 @@ func resolveDataDir() (string, error) {
 		return opts.dataDir, nil
 	}
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("locating home directory: %w", err)
+	// Use XDG_DATA_HOME if set, otherwise ~/.local/share (even on macOS)
+	dataDir := os.Getenv("XDG_DATA_HOME")
+	if dataDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("locating home directory: %w", err)
+		}
+		dataDir = filepath.Join(homeDir, ".local", "share")
 	}
-	return filepath.Join(homeDir, ".local", "share", "push"), nil
+	return filepath.Join(dataDir, "push"), nil
 }
