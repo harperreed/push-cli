@@ -308,6 +308,68 @@ func (s *Store) QueryMessages(ctx context.Context, limit int, since *time.Time, 
 	return results, nil
 }
 
+// QuerySent returns persisted sent messages applying the optional filters.
+func (s *Store) QuerySent(ctx context.Context, limit int, since *time.Time, search string) ([]SentRecord, error) {
+	if s == nil || s.sql == nil {
+		return nil, errors.New("database not initialized")
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+
+	clauses := []string{"1=1"}
+	args := []interface{}{}
+
+	if since != nil && !since.IsZero() {
+		clauses = append(clauses, "sent_at >= ?")
+		args = append(args, since.UTC())
+	}
+
+	if search != "" {
+		like := fmt.Sprintf("%%%s%%", search)
+		clauses = append(clauses, "(message LIKE ? OR title LIKE ?)")
+		args = append(args, like, like)
+	}
+
+	query := fmt.Sprintf(`SELECT id, message, title, device, priority, sent_at, request_id
+        FROM sent
+        WHERE %s
+        ORDER BY sent_at DESC
+        LIMIT ?;`, strings.Join(clauses, " AND "))
+	args = append(args, limit)
+
+	rows, err := s.sql.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query sent: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var results []SentRecord
+	for rows.Next() {
+		var rec SentRecord
+		var sentAt time.Time
+		if err := rows.Scan(
+			&rec.ID,
+			&rec.Message,
+			&rec.Title,
+			&rec.Device,
+			&rec.Priority,
+			&sentAt,
+			&rec.RequestID,
+		); err != nil {
+			return nil, fmt.Errorf("scan sent: %w", err)
+		}
+		rec.SentAt = sentAt
+		results = append(results, rec)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate sent: %w", err)
+	}
+
+	return results, nil
+}
+
 func boolToInt(v bool) int {
 	if v {
 		return 1
