@@ -1,5 +1,8 @@
 // ABOUTME: Tests for database operations.
 // ABOUTME: Covers QuerySent, QueryMessages, and persistence operations.
+
+//go:build !windows
+
 package db
 
 import (

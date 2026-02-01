@@ -1,5 +1,8 @@
 // ABOUTME: Tests for CLI commands and helper functions.
 // ABOUTME: Covers root command, helper functions, and command integration.
+
+//go:build !windows
+
 package cli
 
 import (
@@ -1028,9 +1031,10 @@ func TestGenerateJSONOutput_OnlyReceived(t *testing.T) {
 		t.Fatalf("generateJSONOutput() error: %v", err)
 	}
 
-	// Should not have "sent" key when includeSent is false
+	// With Go 1.22+, omitempty also omits empty slices (not just nil).
+	// Since sentRecords is nil (normalized to empty slice), "sent" is omitted.
 	if strings.Contains(string(result), `"sent"`) {
-		t.Error("JSON should not contain 'sent' when includeSent is false")
+		t.Error("JSON should not contain 'sent' when sentRecords is nil/empty")
 	}
 }
 

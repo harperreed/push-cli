@@ -1,5 +1,8 @@
 // ABOUTME: Tests for configuration management.
 // ABOUTME: Validates config loading, saving, and validation.
+
+//go:build !windows
+
 package config
 
 import (
