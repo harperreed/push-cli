@@ -43,6 +43,7 @@ func newRootCmd() *cobra.Command {
 		newHistoryCmd(),
 		newConfigCmd(),
 		newMCPCmd(),
+		newInstallSkillCmd(),
 	)
 
 	return cmd
