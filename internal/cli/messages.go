@@ -43,7 +43,7 @@ func runMessages(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	store, _, err := openStore()
+	store, _, err := openStorage(cfg)
 	if err != nil {
 		return err
 	}

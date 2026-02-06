@@ -7,22 +7,22 @@ import (
 	"fmt"
 
 	"github.com/harper/push/internal/config"
-	"github.com/harper/push/internal/db"
 	"github.com/harper/push/internal/pushover"
+	"github.com/harper/push/internal/storage"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // Server wraps the MCP runtime and Push integrations.
 type Server struct {
-	mcp     *mcp.Server
-	cfg     *config.Config
-	cfgPath string
-	store   *db.Store
-	dbPath  string
+	mcp       *mcp.Server
+	cfg       *config.Config
+	cfgPath   string
+	store     storage.Storage
+	storePath string
 }
 
 // NewServer sets up the MCP server with all tools and resources.
-func NewServer(cfg *config.Config, cfgPath string, store *db.Store, dbPath string) (*Server, error) {
+func NewServer(cfg *config.Config, cfgPath string, store storage.Storage, storePath string) (*Server, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is required")
 	}
@@ -34,11 +34,11 @@ func NewServer(cfg *config.Config, cfgPath string, store *db.Store, dbPath strin
 	srv := mcp.NewServer(impl, nil)
 
 	server := &Server{
-		mcp:     srv,
-		cfg:     cfg,
-		cfgPath: cfgPath,
-		store:   store,
-		dbPath:  dbPath,
+		mcp:       srv,
+		cfg:       cfg,
+		cfgPath:   cfgPath,
+		store:     store,
+		storePath: storePath,
 	}
 
 	server.registerTools()

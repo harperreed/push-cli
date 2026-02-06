@@ -31,13 +31,13 @@ func runMCP(cmd *cobra.Command, args []string) error {
 		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "warning: device not configured, check_messages and mark_read will fail until you run 'push login'\n")
 	}
 
-	store, dbPath, err := openStore()
+	store, storePath, err := openStorage(cfg)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = store.Close() }()
 
-	server, err := pushmcp.NewServer(cfg, cfgPath, store, dbPath)
+	server, err := pushmcp.NewServer(cfg, cfgPath, store, storePath)
 	if err != nil {
 		return err
 	}

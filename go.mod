@@ -4,6 +4,7 @@ go 1.25.5
 
 require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
+	github.com/harper/suite/mdstore v0.0.0-00010101000000-000000000000
 	github.com/modelcontextprotocol/go-sdk v1.1.0
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/spf13/cobra v1.8.0
@@ -11,6 +12,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.40.1
 )
+
+replace github.com/harper/suite/mdstore => ../mdstore
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect

@@ -1,5 +1,5 @@
 // ABOUTME: Message conversion utilities between API and database formats.
-// ABOUTME: Transforms Pushover API responses into database records.
+// ABOUTME: Transforms Pushover API responses into storage records.
 package messages
 
 import (
@@ -7,20 +7,20 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/harper/push/internal/db"
 	"github.com/harper/push/internal/pushover"
+	"github.com/harper/push/internal/storage"
 )
 
-// RecordsFromReceived converts API messages into database records.
-func RecordsFromReceived(msgs []pushover.ReceivedMessage) []db.MessageRecord {
-	records := make([]db.MessageRecord, 0, len(msgs))
+// RecordsFromReceived converts API messages into storage records.
+func RecordsFromReceived(msgs []pushover.ReceivedMessage) []storage.MessageRecord {
+	records := make([]storage.MessageRecord, 0, len(msgs))
 	for _, msg := range msgs {
 		received := time.Now()
 		umid := msg.UMIDStr
 		if umid == "" && msg.UMID != 0 {
 			umid = strconv.FormatInt(msg.UMID, 10)
 		}
-		rec := db.MessageRecord{
+		rec := storage.MessageRecord{
 			PushoverID: msg.PushoverID,
 			UMID:       umid,
 			Title:      msg.Title,
@@ -44,7 +44,7 @@ func RecordsFromReceived(msgs []pushover.ReceivedMessage) []db.MessageRecord {
 }
 
 // PersistReceived converts and saves received messages, returning inserted count.
-func PersistReceived(ctx context.Context, store *db.Store, msgs []pushover.ReceivedMessage) (int, error) {
+func PersistReceived(ctx context.Context, store storage.Storage, msgs []pushover.ReceivedMessage) (int, error) {
 	if len(msgs) == 0 {
 		return 0, nil
 	}

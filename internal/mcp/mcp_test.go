@@ -13,13 +13,13 @@ import (
 	"time"
 
 	"github.com/harper/push/internal/config"
-	"github.com/harper/push/internal/db"
 	"github.com/harper/push/internal/pushover"
+	"github.com/harper/push/internal/storage"
 )
 
 func TestNewServer_NilConfig(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestNewServer_NilStore(t *testing.T) {
 
 func TestNewServer_Success(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -71,14 +71,14 @@ func TestNewServer_Success(t *testing.T) {
 	if server.cfgPath != "/path/config.toml" {
 		t.Errorf("cfgPath = %q, want %q", server.cfgPath, "/path/config.toml")
 	}
-	if server.dbPath != "/path/db" {
-		t.Errorf("dbPath = %q, want %q", server.dbPath, "/path/db")
+	if server.storePath != "/path/db" {
+		t.Errorf("storePath = %q, want %q", server.storePath, "/path/db")
 	}
 }
 
 func TestNewClient_FromServer(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestNewClient_FromServer(t *testing.T) {
 
 func TestNewClient_NilConfig(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -242,7 +242,7 @@ func TestBuildResourceResult(t *testing.T) {
 
 func TestSendNotificationInput_Validation(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -270,7 +270,7 @@ func TestSendNotificationInput_Validation(t *testing.T) {
 
 func TestSendNotificationInput_InvalidPriority(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -307,7 +307,7 @@ func TestSendNotificationInput_InvalidPriority(t *testing.T) {
 
 func TestCheckMessagesInput_MissingCredentials(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -330,7 +330,7 @@ func TestCheckMessagesInput_MissingCredentials(t *testing.T) {
 
 func TestMarkReadInput_InvalidMessageID(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -362,7 +362,7 @@ func TestMarkReadInput_InvalidMessageID(t *testing.T) {
 
 func TestListHistoryInput_InvalidSince(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -385,7 +385,7 @@ func TestListHistoryInput_InvalidSince(t *testing.T) {
 
 func TestListHistoryHandler_Success(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -393,7 +393,7 @@ func TestListHistoryHandler_Success(t *testing.T) {
 
 	// Add some test messages
 	ctx := context.Background()
-	msgs := []db.MessageRecord{
+	msgs := []storage.MessageRecord{
 		{PushoverID: 1, Message: "Test 1", ReceivedAt: time.Now()},
 		{PushoverID: 2, Message: "Test 2", ReceivedAt: time.Now()},
 	}
@@ -427,14 +427,14 @@ func TestListHistoryHandler_Success(t *testing.T) {
 
 func TestListHistoryHandler_WithSearch(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
 	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
-	msgs := []db.MessageRecord{
+	msgs := []storage.MessageRecord{
 		{PushoverID: 1, Message: "Hello world", ReceivedAt: time.Now()},
 		{PushoverID: 2, Message: "Goodbye world", ReceivedAt: time.Now()},
 		{PushoverID: 3, Message: "Something else", ReceivedAt: time.Now()},
@@ -466,7 +466,7 @@ func TestListHistoryHandler_WithSearch(t *testing.T) {
 
 func TestListHistoryHandler_WithSince(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -474,7 +474,7 @@ func TestListHistoryHandler_WithSince(t *testing.T) {
 
 	ctx := context.Background()
 	now := time.Now()
-	msgs := []db.MessageRecord{
+	msgs := []storage.MessageRecord{
 		{PushoverID: 1, Message: "Old message", ReceivedAt: now.Add(-48 * time.Hour)},
 		{PushoverID: 2, Message: "Recent message", ReceivedAt: now},
 	}
@@ -622,7 +622,7 @@ func TestCheckMessagesOutput_JSONSerialization(t *testing.T) {
 
 func TestListHistoryHandler_DefaultLimit(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -648,7 +648,7 @@ func TestListHistoryHandler_DefaultLimit(t *testing.T) {
 
 func TestListHistoryHandler_ZeroLimit(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -703,7 +703,7 @@ func TestListHistoryOutput_JSONSerialization(t *testing.T) {
 		Limit:  10,
 		Since:  &now,
 		Search: "test",
-		Messages: []db.MessageRecord{
+		Messages: []storage.MessageRecord{
 			{PushoverID: 1, Message: "Test"},
 		},
 	}
@@ -728,7 +728,7 @@ func TestListHistoryOutput_JSONSerialization(t *testing.T) {
 
 func TestHandleSendNotification_MissingCredentials(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -750,7 +750,7 @@ func TestHandleSendNotification_MissingCredentials(t *testing.T) {
 
 func TestHandleSendNotification_DefaultPriority(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -776,7 +776,7 @@ func TestHandleSendNotification_DefaultPriority(t *testing.T) {
 
 func TestMarkReadInput_MissingCredentials(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -871,7 +871,7 @@ func TestBuildResourceResult_WithLinks(t *testing.T) {
 
 func TestHandleSendNotification_DeviceDefault(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -904,7 +904,7 @@ func TestHandleSendNotification_DeviceDefault(t *testing.T) {
 
 func TestHandleSendNotification_PriorityBoundaries(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -972,7 +972,7 @@ func TestCheckMessagesInput_LimitOptions(t *testing.T) {
 
 func TestListHistoryHandler_EmptySince(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -1000,7 +1000,7 @@ func TestListHistoryHandler_EmptySince(t *testing.T) {
 
 func TestListHistoryHandler_NilSearch(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -1027,7 +1027,7 @@ func TestListHistoryHandler_NilSearch(t *testing.T) {
 
 func TestHandleMarkRead_ValidationOrder(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -1337,7 +1337,7 @@ func (m *mockPushoverServer) createClient(cfg *config.Config) *pushover.Client {
 
 func TestHandleSendNotification_WithMockedAPI(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -1404,7 +1404,7 @@ func TestHandleSendNotification_WithMockedAPI(t *testing.T) {
 
 func TestHandleCheckMessages_WithMockedAPI(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -1451,7 +1451,7 @@ func TestHandleCheckMessages_WithMockedAPI(t *testing.T) {
 
 func TestHandleMarkRead_WithMockedAPI(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -1492,7 +1492,7 @@ func TestHandleMarkRead_WithMockedAPI(t *testing.T) {
 
 func TestHandleSendNotification_WithReceipt(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -1533,7 +1533,7 @@ func TestHandleSendNotification_WithReceipt(t *testing.T) {
 
 func TestHandleSendNotification_APIError(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -1572,7 +1572,7 @@ func TestHandleSendNotification_APIError(t *testing.T) {
 
 func TestHandleCheckMessages_WithLimit(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -1625,7 +1625,7 @@ func TestHandleCheckMessages_WithLimit(t *testing.T) {
 
 func TestHandleMarkRead_APIError(t *testing.T) {
 	tmpDir := t.TempDir()
-	store, err := db.Open(filepath.Join(tmpDir, "test.db"))
+	store, err := storage.NewSqliteStore(filepath.Join(tmpDir, "test.db"))
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}

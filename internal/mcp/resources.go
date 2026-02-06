@@ -102,8 +102,8 @@ func (s *Server) registerStatusResource() {
 				"default_device":    cfg.DefaultDevice,
 				"default_priority":  cfg.DefaultPriority,
 			},
-			"database": map[string]interface{}{
-				"path": s.dbPath,
+			"storage": map[string]interface{}{
+				"path": s.storePath,
 			},
 			"timestamp": time.Now(),
 		}

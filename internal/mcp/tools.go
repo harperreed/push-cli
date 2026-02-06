@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/araddon/dateparse"
-	"github.com/harper/push/internal/db"
 	"github.com/harper/push/internal/messages"
 	"github.com/harper/push/internal/pushover"
+	"github.com/harper/push/internal/storage"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -195,7 +195,7 @@ func (s *Server) handleSendNotification(ctx context.Context, _ *mcp.CallToolRequ
 		Receipt:   resp.Receipt,
 	}
 
-	record := db.SentRecord{
+	record := storage.SentRecord{
 		Message:   input.Message,
 		Title:     input.Title,
 		Device:    device,
@@ -291,11 +291,11 @@ type ListHistoryInput struct {
 }
 
 type ListHistoryOutput struct {
-	Count    int                `json:"count"`
-	Limit    int                `json:"limit"`
-	Since    *time.Time         `json:"since,omitempty"`
-	Search   string             `json:"search,omitempty"`
-	Messages []db.MessageRecord `json:"messages"`
+	Count    int                     `json:"count"`
+	Limit    int                     `json:"limit"`
+	Since    *time.Time              `json:"since,omitempty"`
+	Search   string                  `json:"search,omitempty"`
+	Messages []storage.MessageRecord `json:"messages"`
 }
 
 func (s *Server) handleListHistory(ctx context.Context, _ *mcp.CallToolRequest, input ListHistoryInput) (*mcp.CallToolResult, ListHistoryOutput, error) {

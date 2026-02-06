@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/harper/push/internal/db"
+	"github.com/harper/push/internal/storage"
 )
 
 func TestWriteHistoryMarkdown(t *testing.T) {
 	now := time.Date(2026, 1, 30, 14, 32, 0, 0, time.UTC)
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{
 			PushoverID: 12345,
 			ReceivedAt: now,
@@ -35,7 +35,7 @@ func TestWriteHistoryMarkdown(t *testing.T) {
 		},
 	}
 
-	sentRecords := []db.SentRecord{
+	sentRecords := []storage.SentRecord{
 		{
 			ID:        1,
 			SentAt:    now.Add(2 * time.Hour),
@@ -111,7 +111,7 @@ func TestWriteHistoryMarkdown_EmptyRecords(t *testing.T) {
 
 func TestWriteHistoryYAML(t *testing.T) {
 	now := time.Date(2026, 1, 30, 14, 32, 0, 0, time.UTC)
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{
 			PushoverID: 12345,
 			ReceivedAt: now,
@@ -122,7 +122,7 @@ func TestWriteHistoryYAML(t *testing.T) {
 		},
 	}
 
-	sentRecords := []db.SentRecord{
+	sentRecords := []storage.SentRecord{
 		{
 			ID:       1,
 			SentAt:   now,
@@ -183,7 +183,7 @@ func TestWriteHistoryYAML_EmptyRecords(t *testing.T) {
 
 func TestWriteHistoryJSON(t *testing.T) {
 	now := time.Date(2026, 1, 30, 14, 32, 0, 0, time.UTC)
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{
 			PushoverID: 12345,
 			ReceivedAt: now,

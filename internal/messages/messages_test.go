@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/harper/push/internal/db"
 	"github.com/harper/push/internal/pushover"
+	"github.com/harper/push/internal/storage"
 )
 
 func TestRecordsFromReceived_Empty(t *testing.T) {
@@ -181,7 +181,7 @@ func TestPersistReceived_Empty(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	store, err := db.Open(dbPath)
+	store, err := storage.NewSqliteStore(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -209,7 +209,7 @@ func TestPersistReceived_SingleMessage(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	store, err := db.Open(dbPath)
+	store, err := storage.NewSqliteStore(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -254,7 +254,7 @@ func TestPersistReceived_MultipleMessages(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	store, err := db.Open(dbPath)
+	store, err := storage.NewSqliteStore(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
@@ -289,7 +289,7 @@ func TestPersistReceived_Upsert(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
 
-	store, err := db.Open(dbPath)
+	store, err := storage.NewSqliteStore(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}

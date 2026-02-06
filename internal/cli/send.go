@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/harper/push/internal/db"
+	"github.com/harper/push/internal/config"
 	"github.com/harper/push/internal/pushover"
+	"github.com/harper/push/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -72,25 +73,25 @@ func runSend(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := logSentMessage(ctx, message, title, device, priority, resp.Request); err != nil {
+	if err := logSentMessage(ctx, cfg, message, title, device, priority, resp.Request); err != nil {
 		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "warning: unable to log sent message: %v\n", err)
 	}
 
-	cmd.Printf("✓ Notification sent. Request ID: %s\n", resp.Request)
+	cmd.Printf("Notification sent. Request ID: %s\n", resp.Request)
 	if resp.Receipt != "" {
 		cmd.Printf("Receipt: %s\n", resp.Receipt)
 	}
 	return nil
 }
 
-func logSentMessage(ctx context.Context, message, title, device string, priority int, requestID string) error {
-	store, _, err := openStore()
+func logSentMessage(ctx context.Context, cfg *config.Config, message, title, device string, priority int, requestID string) error {
+	store, _, err := openStorage(cfg)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = store.Close() }()
 
-	rec := db.SentRecord{
+	rec := storage.SentRecord{
 		Message:   message,
 		Title:     title,
 		Device:    device,

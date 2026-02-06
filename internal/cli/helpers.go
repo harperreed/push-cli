@@ -1,5 +1,5 @@
 // ABOUTME: Helper functions shared across CLI commands.
-// ABOUTME: Provides config loading, database access, and client creation.
+// ABOUTME: Provides config loading, storage access, and client creation.
 package cli
 
 import (
@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/harper/push/internal/config"
-	"github.com/harper/push/internal/db"
 	"github.com/harper/push/internal/pushover"
+	"github.com/harper/push/internal/storage"
 )
 
 func loadConfig() (*config.Config, string, error) {
@@ -23,24 +23,45 @@ func loadConfig() (*config.Config, string, error) {
 	return cfg, cfgPath, nil
 }
 
-func databasePath() (string, error) {
-	dataDir, err := resolveDataDir()
-	if err != nil {
-		return "", err
+func resolveStorageDataDir(cfg *config.Config) (string, error) {
+	// Check config-level data_dir override first
+	if cfg != nil && cfg.GetDataDir() != "" {
+		return cfg.GetDataDir(), nil
 	}
-	return filepath.Join(dataDir, "push.db"), nil
+	// Fall back to CLI flag / XDG default
+	return resolveDataDir()
 }
 
-func openStore() (*db.Store, string, error) {
-	path, err := databasePath()
+func openStorage(cfg *config.Config) (storage.Storage, string, error) {
+	dataDir, err := resolveStorageDataDir(cfg)
 	if err != nil {
 		return nil, "", err
 	}
-	store, err := db.Open(path)
-	if err != nil {
-		return nil, "", fmt.Errorf("open database: %w", err)
+
+	backend := "sqlite"
+	if cfg != nil {
+		backend = cfg.GetBackend()
 	}
-	return store, path, nil
+
+	switch backend {
+	case "sqlite":
+		dbPath := filepath.Join(dataDir, "push.db")
+		store, err := storage.NewSqliteStore(dbPath)
+		if err != nil {
+			return nil, "", fmt.Errorf("open sqlite database: %w", err)
+		}
+		return store, dbPath, nil
+
+	case "markdown":
+		store, err := storage.NewMarkdownStore(dataDir)
+		if err != nil {
+			return nil, "", fmt.Errorf("open markdown store: %w", err)
+		}
+		return store, dataDir, nil
+
+	default:
+		return nil, "", fmt.Errorf("unknown storage backend: %q", backend)
+	}
 }
 
 func newClientFromConfig(cfg *config.Config) *pushover.Client {

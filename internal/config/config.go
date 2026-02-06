@@ -19,6 +19,46 @@ type Config struct {
 	DeviceSecret    string `toml:"device_secret"`
 	DefaultDevice   string `toml:"default_device"`
 	DefaultPriority int    `toml:"default_priority"`
+
+	// Backend selects the storage backend: "sqlite" (default) or "markdown".
+	Backend string `toml:"backend,omitempty"`
+
+	// DataDir overrides the root directory for markdown storage.
+	// Supports ~ expansion for home directory.
+	DataDir string `toml:"data_dir,omitempty"`
+}
+
+// GetBackend returns the configured backend, defaulting to "sqlite".
+func (c *Config) GetBackend() string {
+	if c == nil || c.Backend == "" {
+		return "sqlite"
+	}
+	return c.Backend
+}
+
+// GetDataDir returns the configured data directory with ~ expanded.
+// Returns empty string if not set (caller should use default).
+func (c *Config) GetDataDir() string {
+	if c == nil || c.DataDir == "" {
+		return ""
+	}
+	return expandPath(c.DataDir)
+}
+
+// expandPath expands a leading ~ to the user's home directory.
+func expandPath(path string) string {
+	if path == "" {
+		return ""
+	}
+	if path == "~" {
+		home, _ := os.UserHomeDir()
+		return home
+	}
+	if len(path) > 1 && path[0] == '~' && path[1] == '/' {
+		home, _ := os.UserHomeDir()
+		return filepath.Join(home, path[2:])
+	}
+	return path
 }
 
 // Load reads the config from disk. If the file does not exist it returns a default config.

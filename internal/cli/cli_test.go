@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/harper/push/internal/config"
-	"github.com/harper/push/internal/db"
 	"github.com/harper/push/internal/pushover"
+	"github.com/harper/push/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -282,7 +282,7 @@ func TestWriteHistoryTable_Empty(t *testing.T) {
 	var buf bytes.Buffer
 	cmd.SetOut(&buf)
 
-	writeHistoryTable(cmd, []db.MessageRecord{})
+	writeHistoryTable(cmd, []storage.MessageRecord{})
 
 	output := buf.String()
 	if !strings.Contains(output, "No history found") {
@@ -295,7 +295,7 @@ func TestWriteHistoryTable_WithRecords(t *testing.T) {
 	var buf bytes.Buffer
 	cmd.SetOut(&buf)
 
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{
 			PushoverID: 12345,
 			Message:    "Test message",
@@ -332,7 +332,7 @@ func TestWriteSentTable_Empty(t *testing.T) {
 	var buf bytes.Buffer
 	cmd.SetOut(&buf)
 
-	writeSentTable(cmd, []db.SentRecord{})
+	writeSentTable(cmd, []storage.SentRecord{})
 
 	output := buf.String()
 	if !strings.Contains(output, "No sent messages found") {
@@ -345,7 +345,7 @@ func TestWriteSentTable_WithRecords(t *testing.T) {
 	var buf bytes.Buffer
 	cmd.SetOut(&buf)
 
-	records := []db.SentRecord{
+	records := []storage.SentRecord{
 		{
 			ID:       1,
 			Message:  "Sent message",
@@ -374,10 +374,10 @@ func TestWriteSentTable_WithRecords(t *testing.T) {
 }
 
 func TestGenerateJSONOutput(t *testing.T) {
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{PushoverID: 1, Message: "Test"},
 	}
-	sentRecords := []db.SentRecord{
+	sentRecords := []storage.SentRecord{
 		{ID: 1, Message: "Sent"},
 	}
 
@@ -398,10 +398,10 @@ func TestGenerateJSONOutput(t *testing.T) {
 }
 
 func TestGenerateMarkdownOutput(t *testing.T) {
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{PushoverID: 1, Message: "Test", ReceivedAt: time.Now()},
 	}
-	sentRecords := []db.SentRecord{
+	sentRecords := []storage.SentRecord{
 		{ID: 1, Message: "Sent", SentAt: time.Now()},
 	}
 
@@ -419,10 +419,10 @@ func TestGenerateMarkdownOutput(t *testing.T) {
 }
 
 func TestGenerateYAMLOutput(t *testing.T) {
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{PushoverID: 1, Message: "Test", ReceivedAt: time.Now()},
 	}
-	sentRecords := []db.SentRecord{
+	sentRecords := []storage.SentRecord{
 		{ID: 1, Message: "Sent", SentAt: time.Now()},
 	}
 	since := time.Now().Add(-24 * time.Hour)
@@ -498,31 +498,42 @@ func TestValidateFormat_Invalid(t *testing.T) {
 	}
 }
 
-func TestDatabasePath(t *testing.T) {
-	opts.dataDir = ""
+func TestOpenStorage_Sqlite(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := &config.Config{Backend: "sqlite"}
 
-	path, err := databasePath()
+	opts.dataDir = tmpDir
+	defer func() { opts.dataDir = "" }()
+
+	store, path, err := openStorage(cfg)
 	if err != nil {
-		t.Fatalf("databasePath() error: %v", err)
+		t.Fatalf("openStorage() error: %v", err)
 	}
+	defer func() { _ = store.Close() }()
 
-	if !strings.HasSuffix(path, "push.db") {
-		t.Errorf("path = %q, expected to end with push.db", path)
+	expectedPath := filepath.Join(tmpDir, "push.db")
+	if path != expectedPath {
+		t.Errorf("path = %q, want %q", path, expectedPath)
 	}
 }
 
-func TestDatabasePath_WithOverride(t *testing.T) {
-	opts.dataDir = "/custom/data"
+func TestOpenStorage_Markdown(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := &config.Config{Backend: "markdown"}
+
+	opts.dataDir = tmpDir
 	defer func() { opts.dataDir = "" }()
 
-	path, err := databasePath()
+	store, path, err := openStorage(cfg)
 	if err != nil {
-		t.Fatalf("databasePath() error: %v", err)
+		t.Fatalf("openStorage() error: %v", err)
 	}
+	defer func() { _ = store.Close() }()
 
-	if path != "/custom/data/push.db" {
-		t.Errorf("path = %q, want %q", path, "/custom/data/push.db")
+	if path != tmpDir {
+		t.Errorf("path = %q, want %q", path, tmpDir)
 	}
+	_ = store
 }
 
 func TestNewLoginCmd(t *testing.T) {
@@ -586,7 +597,7 @@ func TestWriteHistoryTable_MinimalRecord(t *testing.T) {
 	cmd.SetOut(&buf)
 
 	// Test record with only required fields
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{
 			PushoverID: 1,
 			Message:    "Simple message",
@@ -612,7 +623,7 @@ func TestWriteSentTable_MinimalRecord(t *testing.T) {
 	cmd.SetOut(&buf)
 
 	// Test record with only required fields
-	records := []db.SentRecord{
+	records := []storage.SentRecord{
 		{
 			ID:      1,
 			Message: "Simple sent message",
@@ -663,7 +674,7 @@ func TestWriteHistoryMarkdown_AllFields(t *testing.T) {
 	var buf bytes.Buffer
 
 	now := time.Now()
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{
 			PushoverID: 1,
 			ReceivedAt: now,
@@ -684,7 +695,7 @@ func TestWriteHistoryMarkdown_AllFields(t *testing.T) {
 		},
 	}
 
-	sentRecords := []db.SentRecord{
+	sentRecords := []storage.SentRecord{
 		{
 			ID:       1,
 			SentAt:   now,
@@ -732,7 +743,7 @@ func TestWriteHistoryMarkdown_AllFields(t *testing.T) {
 
 func TestGenerateJSONOutput_FullStructure(t *testing.T) {
 	now := time.Now()
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{
 			PushoverID: 12345,
 			Message:    "Test message",
@@ -740,7 +751,7 @@ func TestGenerateJSONOutput_FullStructure(t *testing.T) {
 			ReceivedAt: now,
 		},
 	}
-	sentRecords := []db.SentRecord{
+	sentRecords := []storage.SentRecord{
 		{
 			ID:      1,
 			Message: "Sent message",
@@ -774,7 +785,7 @@ func TestWriteHistoryYAML_WithAllFields(t *testing.T) {
 	now := time.Now()
 	since := now.Add(-24 * time.Hour)
 
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{
 			PushoverID: 1,
 			ReceivedAt: now,
@@ -786,7 +797,7 @@ func TestWriteHistoryYAML_WithAllFields(t *testing.T) {
 		},
 	}
 
-	sentRecords := []db.SentRecord{
+	sentRecords := []storage.SentRecord{
 		{
 			ID:       1,
 			SentAt:   now,
@@ -889,16 +900,17 @@ func TestLoadConfig_NonExistent(t *testing.T) {
 	}
 }
 
-func TestOpenStore_Success(t *testing.T) {
+func TestOpenStorage_DefaultSqlite(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Set the data directory
 	opts.dataDir = tmpDir
 	defer func() { opts.dataDir = "" }()
 
-	store, path, err := openStore()
+	cfg := &config.Config{} // defaults to sqlite
+	store, path, err := openStorage(cfg)
 	if err != nil {
-		t.Fatalf("openStore() error: %v", err)
+		t.Fatalf("openStorage() error: %v", err)
 	}
 	defer func() { _ = store.Close() }()
 
@@ -913,7 +925,7 @@ func TestOpenStore_Success(t *testing.T) {
 	}
 }
 
-func TestOpenStore_CreatesDirectory(t *testing.T) {
+func TestOpenStorage_CreatesDirectory(t *testing.T) {
 	tmpDir := t.TempDir()
 	nestedDir := filepath.Join(tmpDir, "nested", "data")
 
@@ -921,9 +933,10 @@ func TestOpenStore_CreatesDirectory(t *testing.T) {
 	opts.dataDir = nestedDir
 	defer func() { opts.dataDir = "" }()
 
-	store, path, err := openStore()
+	cfg := &config.Config{}
+	store, path, err := openStorage(cfg)
 	if err != nil {
-		t.Fatalf("openStore() error: %v", err)
+		t.Fatalf("openStorage() error: %v", err)
 	}
 	defer func() { _ = store.Close() }()
 
@@ -1022,7 +1035,7 @@ func TestWriteToFile_CreateError(t *testing.T) {
 }
 
 func TestGenerateJSONOutput_OnlyReceived(t *testing.T) {
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{PushoverID: 1, Message: "Test", ReceivedAt: time.Now()},
 	}
 
@@ -1040,10 +1053,10 @@ func TestGenerateJSONOutput_OnlyReceived(t *testing.T) {
 
 func TestGenerateYAMLOutput_ErrorCase(t *testing.T) {
 	// Test with valid data to ensure no marshal errors
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{PushoverID: 1, Message: "Test", ReceivedAt: time.Now()},
 	}
-	sentRecords := []db.SentRecord{
+	sentRecords := []storage.SentRecord{
 		{ID: 1, Message: "Sent", SentAt: time.Now()},
 	}
 
@@ -1060,7 +1073,7 @@ func TestWriteHistoryTable_LongMessage(t *testing.T) {
 
 	// Test with a very long message
 	longMsg := strings.Repeat("a", 500)
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{
 			PushoverID: 1,
 			Message:    longMsg,
@@ -1087,7 +1100,7 @@ func TestHighestMessageID_NilBoth(t *testing.T) {
 func TestWriteHistoryMarkdown_EmptyArrays(t *testing.T) {
 	var buf bytes.Buffer
 
-	writeHistoryMarkdown(&buf, []db.MessageRecord{}, []db.SentRecord{})
+	writeHistoryMarkdown(&buf, []storage.MessageRecord{}, []storage.SentRecord{})
 
 	output := buf.String()
 	if !strings.Contains(output, "No messages found") {
@@ -1145,33 +1158,25 @@ func TestResolveDataDir_NoEnvVar(t *testing.T) {
 	}
 }
 
-func TestDatabasePath_Error(t *testing.T) {
-	// This test verifies databasePath uses resolveDataDir correctly
-	opts.dataDir = "/valid/path"
-	defer func() { opts.dataDir = "" }()
-
-	path, err := databasePath()
-	if err != nil {
-		t.Fatalf("databasePath() error: %v", err)
-	}
-
-	if path != "/valid/path/push.db" {
-		t.Errorf("path = %q, want %q", path, "/valid/path/push.db")
-	}
-}
-
-func TestOpenStore_Error(t *testing.T) {
-	// Try to open store in a read-only location (like /dev/null)
-	// This is difficult to test reliably across platforms
-	// Instead, verify the function handles the data dir resolution
-
+func TestOpenStorage_UnknownBackend(t *testing.T) {
 	tmpDir := t.TempDir()
 	opts.dataDir = tmpDir
 	defer func() { opts.dataDir = "" }()
 
-	store, path, err := openStore()
+	cfg := &config.Config{Backend: "unknown"}
+	_, _, err := openStorage(cfg)
+	if err == nil {
+		t.Error("expected error for unknown backend")
+	}
+}
+
+func TestOpenStorage_WithConfigDataDir(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := &config.Config{DataDir: tmpDir}
+
+	store, path, err := openStorage(cfg)
 	if err != nil {
-		t.Fatalf("openStore() error: %v", err)
+		t.Fatalf("openStorage() error: %v", err)
 	}
 	defer func() { _ = store.Close() }()
 
@@ -1186,7 +1191,7 @@ func TestOpenStore_Error(t *testing.T) {
 func TestGenerateJSONOutput_MarshalError(t *testing.T) {
 	// Test that the function handles valid input correctly
 	// (It's hard to cause a marshal error with standard types)
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{PushoverID: 1, Message: "Test with special chars: \u0000", ReceivedAt: time.Now()},
 	}
 
@@ -1200,10 +1205,10 @@ func TestGenerateYAMLOutput_WithAllParams(t *testing.T) {
 	now := time.Now()
 	since := now.Add(-24 * time.Hour)
 
-	records := []db.MessageRecord{
+	records := []storage.MessageRecord{
 		{PushoverID: 1, Message: "Test", Title: "Title", ReceivedAt: now},
 	}
-	sentRecords := []db.SentRecord{
+	sentRecords := []storage.SentRecord{
 		{ID: 1, Message: "Sent", Title: "Sent Title", SentAt: now},
 	}
 

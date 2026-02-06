@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/araddon/dateparse"
-	"github.com/harper/push/internal/db"
+	"github.com/harper/push/internal/storage"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -66,7 +66,12 @@ func runHistory(cmd *cobra.Command, args []string) error {
 		since = &parsed
 	}
 
-	store, _, err := openStore()
+	cfg, _, err := loadConfig()
+	if err != nil {
+		return err
+	}
+
+	store, _, err := openStorage(cfg)
 	if err != nil {
 		return err
 	}
@@ -77,7 +82,7 @@ func runHistory(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	var sentRecords []db.SentRecord
+	var sentRecords []storage.SentRecord
 	if includeSent {
 		sentRecords, err = store.QuerySent(cmd.Context(), limit, since, search)
 		if err != nil {
@@ -135,7 +140,7 @@ func validateFormat(format string) error {
 	}
 }
 
-func generateJSONOutput(records []db.MessageRecord, sentRecords []db.SentRecord, _ bool) ([]byte, error) {
+func generateJSONOutput(records []storage.MessageRecord, sentRecords []storage.SentRecord, _ bool) ([]byte, error) {
 	var buf strings.Builder
 	if err := writeHistoryJSONFull(&buf, records, sentRecords); err != nil {
 		return nil, err
@@ -143,13 +148,13 @@ func generateJSONOutput(records []db.MessageRecord, sentRecords []db.SentRecord,
 	return []byte(buf.String()), nil
 }
 
-func generateMarkdownOutput(records []db.MessageRecord, sentRecords []db.SentRecord) []byte {
+func generateMarkdownOutput(records []storage.MessageRecord, sentRecords []storage.SentRecord) []byte {
 	var buf strings.Builder
 	writeHistoryMarkdown(&buf, records, sentRecords)
 	return []byte(buf.String())
 }
 
-func generateYAMLOutput(records []db.MessageRecord, sentRecords []db.SentRecord, since *time.Time, search string) ([]byte, error) {
+func generateYAMLOutput(records []storage.MessageRecord, sentRecords []storage.SentRecord, since *time.Time, search string) ([]byte, error) {
 	var buf strings.Builder
 	if err := writeHistoryYAML(&buf, records, sentRecords, since, search); err != nil {
 		return nil, err
@@ -168,11 +173,11 @@ func writeToFile(path string, data []byte) error {
 	return nil
 }
 
-func writeHistoryJSONFull(w io.Writer, records []db.MessageRecord, sentRecords []db.SentRecord) error {
+func writeHistoryJSONFull(w io.Writer, records []storage.MessageRecord, sentRecords []storage.SentRecord) error {
 	type exportData struct {
-		ExportDate string             `json:"export_date"`
-		Received   []db.MessageRecord `json:"received"`
-		Sent       []db.SentRecord    `json:"sent,omitempty"`
+		ExportDate string                  `json:"export_date"`
+		Received   []storage.MessageRecord `json:"received"`
+		Sent       []storage.SentRecord    `json:"sent,omitempty"`
 	}
 
 	data := exportData{
@@ -182,10 +187,10 @@ func writeHistoryJSONFull(w io.Writer, records []db.MessageRecord, sentRecords [
 	}
 
 	if data.Received == nil {
-		data.Received = []db.MessageRecord{}
+		data.Received = []storage.MessageRecord{}
 	}
 	if data.Sent == nil {
-		data.Sent = []db.SentRecord{}
+		data.Sent = []storage.SentRecord{}
 	}
 
 	enc := json.NewEncoder(w)
@@ -194,7 +199,7 @@ func writeHistoryJSONFull(w io.Writer, records []db.MessageRecord, sentRecords [
 }
 
 //nolint:nestif // structure is clear and readable
-func writeHistoryMarkdown(w io.Writer, records []db.MessageRecord, sentRecords []db.SentRecord) {
+func writeHistoryMarkdown(w io.Writer, records []storage.MessageRecord, sentRecords []storage.SentRecord) {
 	_, _ = fmt.Fprintf(w, "# Push Message History\n\n")
 	_, _ = fmt.Fprintf(w, "Export date: %s\n\n", time.Now().UTC().Format(time.RFC3339))
 
@@ -281,7 +286,7 @@ type yamlSentRecord struct {
 	Priority int    `yaml:"priority,omitempty"`
 }
 
-func writeHistoryYAML(w io.Writer, records []db.MessageRecord, sentRecords []db.SentRecord, since *time.Time, search string) error {
+func writeHistoryYAML(w io.Writer, records []storage.MessageRecord, sentRecords []storage.SentRecord, since *time.Time, search string) error {
 	export := yamlExport{
 		Export: yamlExportMeta{
 			Date: time.Now().UTC().Format(time.RFC3339),
@@ -325,7 +330,7 @@ func writeHistoryYAML(w io.Writer, records []db.MessageRecord, sentRecords []db.
 	return enc.Encode(export)
 }
 
-func writeHistoryTable(cmd *cobra.Command, records []db.MessageRecord) {
+func writeHistoryTable(cmd *cobra.Command, records []storage.MessageRecord) {
 	if len(records) == 0 {
 		cmd.Println("No history found.")
 		return
@@ -348,7 +353,7 @@ func writeHistoryTable(cmd *cobra.Command, records []db.MessageRecord) {
 	}
 }
 
-func writeSentTable(cmd *cobra.Command, records []db.SentRecord) {
+func writeSentTable(cmd *cobra.Command, records []storage.SentRecord) {
 	if len(records) == 0 {
 		cmd.Println("No sent messages found.")
 		return
