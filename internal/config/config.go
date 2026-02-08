@@ -105,6 +105,11 @@ func Save(path string, cfg *Config) error {
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("writing temp config file: %w", err)
 	}
+	if err := tmpFile.Sync(); err != nil {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("syncing temp config file: %w", err)
+	}
 	if err := tmpFile.Close(); err != nil {
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("closing temp config file: %w", err)

@@ -157,6 +157,16 @@ func (m SetupModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.spinner, cmd = m.spinner.Update(msg)
 			return m, cmd
 		}
+
+	default:
+		// Forward other messages (e.g. cursor blink) to the active input
+		switch m.step {
+		case StepAppToken, StepUserKey, StepBackend, StepDataDir:
+			idx := int(m.step)
+			var cmd tea.Cmd
+			m.inputs[idx], cmd = m.inputs[idx].Update(msg)
+			return m, cmd
+		}
 	}
 
 	return m, nil
