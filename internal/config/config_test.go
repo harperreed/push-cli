@@ -12,12 +12,83 @@ import (
 )
 
 func TestLoadNonExistent(t *testing.T) {
-	cfg, err := Load("/nonexistent/path/config.toml")
+	tmpDir := t.TempDir()
+	origDataXDG := os.Getenv("XDG_DATA_HOME")
+	defer func() { _ = os.Setenv("XDG_DATA_HOME", origDataXDG) }()
+	_ = os.Setenv("XDG_DATA_HOME", tmpDir)
+
+	cfgPath := filepath.Join(tmpDir, "push-config", "config.toml")
+	cfg, err := Load(cfgPath)
 	if err != nil {
 		t.Fatalf("Load() returned error for nonexistent file: %v", err)
 	}
 	if cfg == nil {
 		t.Fatal("Load() returned nil config")
+	}
+	if cfg.Backend != "markdown" {
+		t.Errorf("expected markdown backend for new user, got %q", cfg.Backend)
+	}
+
+	// Verify config file was auto-created
+	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
+		t.Error("expected config file to be auto-created")
+	}
+}
+
+func TestLoadNonExistent_ExistingSQLiteUser(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDataXDG := os.Getenv("XDG_DATA_HOME")
+	defer func() { _ = os.Setenv("XDG_DATA_HOME", origDataXDG) }()
+	_ = os.Setenv("XDG_DATA_HOME", tmpDir)
+
+	// Create a fake .db file to simulate existing SQLite user
+	dbDir := filepath.Join(tmpDir, "push")
+	if err := os.MkdirAll(dbDir, 0750); err != nil {
+		t.Fatalf("failed to create db dir: %v", err)
+	}
+	dbPath := filepath.Join(dbDir, "push.db")
+	if err := os.WriteFile(dbPath, []byte("fake-db"), 0600); err != nil {
+		t.Fatalf("failed to create fake db: %v", err)
+	}
+
+	cfgPath := filepath.Join(tmpDir, "push-config", "config.toml")
+	cfg, err := Load(cfgPath)
+	if err != nil {
+		t.Fatalf("Load() returned error: %v", err)
+	}
+	if cfg.Backend != "sqlite" {
+		t.Errorf("expected sqlite backend for existing user, got %q", cfg.Backend)
+	}
+}
+
+func TestLoadAutoCreatesValidConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDataXDG := os.Getenv("XDG_DATA_HOME")
+	defer func() { _ = os.Setenv("XDG_DATA_HOME", origDataXDG) }()
+	_ = os.Setenv("XDG_DATA_HOME", tmpDir)
+
+	cfgPath := filepath.Join(tmpDir, "push-config", "config.toml")
+	_, err := Load(cfgPath)
+	if err != nil {
+		t.Fatalf("Load() returned error: %v", err)
+	}
+
+	// Read back the auto-created file and verify it's valid TOML
+	data, err := os.ReadFile(cfgPath)
+	if err != nil {
+		t.Fatalf("failed to read auto-created config: %v", err)
+	}
+	if len(data) == 0 {
+		t.Fatal("auto-created config file is empty")
+	}
+
+	// Load it again to verify it parses correctly
+	cfg, err := Load(cfgPath)
+	if err != nil {
+		t.Fatalf("failed to re-load auto-created config: %v", err)
+	}
+	if cfg.Backend != "markdown" {
+		t.Errorf("expected backend 'markdown' in config file, got %q", cfg.Backend)
 	}
 }
 

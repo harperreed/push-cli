@@ -28,6 +28,9 @@ type Config struct {
 	DataDir string `toml:"data_dir,omitempty"`
 }
 
+// defaultDBFilename is the SQLite database filename used for existing-user detection.
+const defaultDBFilename = "push.db"
+
 // GetBackend returns the configured backend, defaulting to "sqlite".
 func (c *Config) GetBackend() string {
 	if c == nil || c.Backend == "" {
@@ -61,11 +64,40 @@ func expandPath(path string) string {
 	return path
 }
 
+// defaultDataDir returns the default data directory for push following XDG spec.
+func defaultDataDir() string {
+	dataDir := os.Getenv("XDG_DATA_HOME")
+	if dataDir == "" {
+		home, _ := os.UserHomeDir()
+		dataDir = filepath.Join(home, ".local", "share")
+	}
+	return filepath.Join(dataDir, "push")
+}
+
+// defaultFirstRunConfig returns the appropriate default config for first-time runs.
+// If an existing SQLite database is found, it preserves SQLite as the backend.
+// Otherwise, it defaults to markdown for new users.
+func defaultFirstRunConfig() *Config {
+	dbPath := filepath.Join(defaultDataDir(), defaultDBFilename)
+	_, err := os.Stat(dbPath)
+	switch {
+	case err == nil:
+		return &Config{Backend: "sqlite"}
+	case !os.IsNotExist(err):
+		fmt.Fprintf(os.Stderr, "warning: could not check for existing database: %v\n", err)
+	}
+	return &Config{Backend: "markdown"}
+}
+
 // Load reads the config from disk. If the file does not exist it returns a default config.
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return &Config{}, nil
+		cfg := defaultFirstRunConfig()
+		if saveErr := Save(path, cfg); saveErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: could not save default config: %v\n", saveErr)
+		}
+		return cfg, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("reading config: %w", err)
@@ -79,7 +111,9 @@ func Load(path string) (*Config, error) {
 	return &cfg, nil
 }
 
-// Save writes the config atomically to disk.
+// Save writes the config atomically to disk with 0600 permissions.
+// Uses a custom atomic write instead of mdstore.AtomicWrite because
+// push configs contain secrets (API tokens, device credentials).
 func Save(path string, cfg *Config) error {
 	if cfg == nil {
 		return errors.New("config is nil")
