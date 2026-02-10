@@ -7,7 +7,7 @@ require (
 	github.com/charmbracelet/bubbles v0.21.1
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
-	github.com/harper/suite/mdstore v0.0.0-00010101000000-000000000000
+	github.com/harperreed/mdstore v0.1.0
 	github.com/modelcontextprotocol/go-sdk v1.1.0
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/spf13/cobra v1.8.0
@@ -15,8 +15,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.40.1
 )
-
-replace github.com/harper/suite/mdstore => ../mdstore
 
 require (
 	github.com/atotto/clipboard v0.1.4 // indirect
